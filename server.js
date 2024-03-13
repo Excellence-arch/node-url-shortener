@@ -18,9 +18,9 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true, limit: "2mb" }));
 
-mongoose.connect(MONGODB_URI, (err) => {
-  if (err) console.log(`Error connecting to the database`);
-  else console.log("Database connected");
+mongoose.connect(MONGODB_URI).then((resp) => {
+  if (resp) console.log(`Connected to the Database`);
+  else console.log(`Error connecting ti the database`);
 });
 
 // Home route
@@ -45,24 +45,29 @@ app.post("/shorten", (req, res) => {
   // urlDatabase[shortCode] = url;
 
   const shortUrl = `${HOST}/${shortCode}`;
-  res.json({ originalUrl: url, shortUrl: shortCode });
+  res.json({ originalUrl: url, shortUrl: shortUrl });
 });
 
 // Redirect route
 app.get("/:shortCode", (req, res) => {
   const { shortCode } = req.params;
-  const originalUrl = urlDatabase[shortCode];
-  urlModel.findOne({ newUrl: shortCode }, (err, result) => {
+  // let originalUrl = "";
+  urlModel.findOne({ newUrl: shortCode }).then((resp, err) => {
     if (err) {
       res.status(501).send("Internal server Error");
+    } else {
+      if (resp) {
+        res.redirect(resp.oldUrl);
+      } else {
+        res.status(404).send("Not Found");
+      }
     }
   });
 
-  if (!originalUrl) {
-    return res.status(404).send("Not Found");
-  }
-
-  res.redirect(originalUrl);
+  // if (!originalUrl) {
+  //   return res.status(404).send("Not Found");
+  // }
+  // res.status(201).send(originalUrl);
 });
 
 // Start the server
